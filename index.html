@@ -2,15 +2,76 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <!-- 移动端自适应 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>我的作品展示站</title>
+    <!-- Firebase CDN 登录依赖 -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
     <style>
         *{
             margin: 0;
             padding: 0;
             box-sizing: border-box;
             font-family: "微软雅黑", sans-serif;
+        }
+        /* 登录弹窗样式 */
+        .login-modal{
+            position: fixed;
+            top:0;
+            left:0;
+            width:100%;
+            height:100%;
+            background:rgba(0,0,0,0.6);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            z-index:999;
+            display: none;
+        }
+        .modal-box{
+            background:#fff;
+            padding:30px;
+            border-radius:12px;
+            width:340px;
+        }
+        .modal-box h3{
+            text-align:center;
+            margin-bottom:20px;
+            color:#2c3e50;
+        }
+        .modal-box input{
+            width:100%;
+            padding:10px;
+            margin:8px 0;
+            border:1px solid #ddd;
+            border-radius:6px;
+        }
+        .modal-box button{
+            width:100%;
+            padding:10px;
+            border:none;
+            border-radius:6px;
+            margin-top:10px;
+            cursor:pointer;
+        }
+        .login-btn{
+            background:#3498db;
+            color:white;
+        }
+        .reg-btn{
+            background:#9b59b6;
+            color:white;
+        }
+        .close-btn{
+            background:#aaa;
+            color:white;
+        }
+        .user-info{
+            color:#fff;
+            margin-left:20px;
+        }
+        .hide{
+            display:none !important;
         }
         /* 导航栏 */
         nav{
@@ -170,6 +231,18 @@
     </style>
 </head>
 <body>
+    <!-- 登录弹窗 -->
+    <div class="login-modal" id="loginModal">
+        <div class="modal-box">
+            <h3>账号登录 / 注册</h3>
+            <input type="email" id="email" placeholder="输入邮箱">
+            <input type="password" id="pwd" placeholder="输入密码">
+            <button class="login-btn" onclick="login()">登录账号</button>
+            <button class="reg-btn" onclick="register()">注册新账号</button>
+            <button class="close-btn" onclick="closeModal()">关闭</button>
+        </div>
+    </div>
+
     <!-- 导航栏 -->
     <nav>
         <div class="nav-box">
@@ -179,6 +252,11 @@
                 <a href="#works">作品</a>
                 <a href="#about">关于我</a>
                 <a href="#contact">联系</a>
+                <a href="#" id="loginBtn" onclick="openModal()">登录/注册</a>
+                <span class="user-info hide" id="userBox">
+                    <span id="userEmail"></span>
+                    <a href="#" onclick="logout()" style="color:#ff9999;">退出登录</a>
+                </span>
             </div>
         </div>
     </nav>
@@ -186,7 +264,7 @@
     <!-- 首页横幅 -->
     <section class="banner" id="home">
         <h1>欢迎来到我的作品展示站</h1>
-        <p>记录创作，分享热爱</p>
+        <p>记录创作，分享热爱，登录查看完整作品库</p>
     </section>
 
     <!-- 作品区域 -->
@@ -248,5 +326,71 @@
         <p>联系方式：可自行填写微信/QQ/邮箱</p>
         <p style="margin-top:10px;">© 2026 个人作品集 版权所有</p>
     </footer>
+
+<script>
+// ========== 1. Firebase 配置（你需要自己去官网替换成你项目的配置）
+const firebaseConfig = {
+  apiKey: "替换成你自己的apiKey",
+  authDomain: "替换成你的项目域名.firebaseapp.com",
+  projectId: "替换成你的项目ID",
+  storageBucket: "xxx.appspot.com",
+  messagingSenderId: "xxxx",
+  appId: "xxxx"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+
+// 弹窗控制
+function openModal(){
+    document.getElementById('loginModal').style.display = 'flex';
+}
+function closeModal(){
+    document.getElementById('loginModal').style.display = 'none';
+}
+
+// 注册账号
+function register(){
+    let email = document.getElementById('email').value;
+    let pwd = document.getElementById('pwd').value;
+    auth.createUserWithEmailAndPassword(email,pwd)
+    .then(()=>{
+        alert("注册成功，自动登录");
+        closeModal();
+    })
+    .catch(err=>alert(err.message));
+}
+
+// 登录
+function login(){
+    let email = document.getElementById('email').value;
+    let pwd = document.getElementById('pwd').value;
+    auth.signInWithEmailAndPassword(email,pwd)
+    .then(()=>{
+        alert("登录成功");
+        closeModal();
+    })
+    .catch(err=>alert(err.message));
+}
+
+// 退出登录
+function logout(){
+    auth.signOut();
+}
+
+// 监听登录状态切换导航显示
+auth.onAuthStateChanged(user=>{
+    if(user){
+        // 已登录
+        document.getElementById('loginBtn').classList.add('hide');
+        document.getElementById('userBox').classList.remove('hide');
+        document.getElementById('userEmail').innerText = user.email;
+    }else{
+        // 未登录
+        document.getElementById('loginBtn').classList.remove('hide');
+        document.getElementById('userBox').classList.add('hide');
+        document.getElementById('userEmail').innerText = "";
+    }
+})
+</script>
 </body>
 </html>
