@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>我的作品展示站</title>
+    <!-- Supabase官方CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         *{
             margin: 0;
@@ -232,10 +234,10 @@
     <div class="login-modal" id="loginModal">
         <div class="modal-box">
             <h3>账号注册 / 登录</h3>
-            <input type="text" id="username" placeholder="自定义用户名">
-            <input type="password" id="pwd" placeholder="设置密码（至少6位）">
+            <input type="email" id="email" placeholder="输入邮箱账号">
+            <input type="password" id="pwd" placeholder="输入密码（至少6位）">
             <button class="reg-btn" onclick="register()">注册新账号</button>
-            <button class="login-btn" onclick="login()">登录已有账号</button>
+            <button class="login-btn" onclick="login()">登录账号</button>
             <button class="close-btn" onclick="closeModal()">关闭弹窗</button>
         </div>
     </div>
@@ -251,7 +253,7 @@
                 <a href="#contact">联系</a>
                 <a href="#" id="loginBtn" onclick="openModal()">登录/注册</a>
                 <span class="user-info hide" id="userBox">
-                    当前用户：<span id="nowUser"></span>
+                    当前用户：<span id="userMail"></span>
                     <a href="#" onclick="logout()" style="color:#ff9999;margin-left:10px;">退出登录</a>
                 </span>
             </div>
@@ -261,7 +263,7 @@
     <!-- 首页横幅 -->
     <section class="banner" id="home">
         <h1>欢迎来到我的作品展示站</h1>
-        <p>记录创作，分享热爱，注册专属账号保存浏览状态</p>
+        <p>云端账号系统，手机电脑互通登录</p>
     </section>
 
     <!-- 作品区域 -->
@@ -309,7 +311,7 @@
                 坚持记录每一份灵感，把想法变成看得见的作品。
                 这里收纳了我所有原创作品，持续更新中。</p>
                 <br>
-                <p>擅长：插画、平面设计、静态网页、风光摄影</p>
+                <p>后端采用Supabase云端数据库，支持跨设备账号登录</p>
             </div>
         </div>
     </section>
@@ -321,93 +323,95 @@
     </footer>
 
 <script>
-// 读取本地存储的全部用户，没有则创建空数组
-let userDatabase = JSON.parse(localStorage.getItem("userDB")) || [];
-let currentLoginUser = localStorage.getItem("loginUser");
+// ====================== 1. 修改这里为你自己的Supabase配置 ======================
+const SUPABASE_URL = "https://okuqxereclfvv eqkjgcu.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_ZSELYa8lcYaZ6X0K-vzcfg_5EVUK......";
+// 初始化Supabase后端
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// 打开登录弹窗
+// 弹窗控制
 function openModal() {
     document.getElementById("loginModal").style.display = "flex";
 }
-// 关闭弹窗
 function closeModal() {
     document.getElementById("loginModal").style.display = "none";
 }
 
-// 注册账号逻辑
-function register() {
-    let name = document.getElementById("username").value.trim();
-    let password = document.getElementById("pwd").value.trim();
-
-    // 空值判断
-    if (!name || !password) {
-        alert("用户名和密码不能为空！");
+// 注册函数（调用Supabase后端接口存入数据库）
+async function register() {
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("pwd").value.trim();
+    if (!email || !password) {
+        alert("邮箱和密码不能为空！");
         return;
     }
-    // 密码长度判断
     if (password.length < 6) {
-        alert("密码不能少于6位！");
+        alert("密码至少6位字符！");
         return;
     }
-    // 判断用户名是否重复
-    let isRepeat = userDatabase.find(item => item.username === name);
-    if (isRepeat) {
-        alert("该用户名已被注册，请更换！");
-        return;
+    // 调用Supabase注册接口
+    const { data, error } = await supabase.auth.signUp({
+        email: email,
+        password: password
+    });
+    if (error) {
+        alert("注册失败：" + error.message);
+    } else {
+        alert("注册成功，自动登录！");
+        closeModal();
     }
-    // 存入用户数据库
-    userDatabase.push({ username: name, pwd: password });
-    localStorage.setItem("userDB", JSON.stringify(userDatabase));
-    alert("注册成功！现在可以登录你的账号");
-    closeModal();
 }
 
-// 登录逻辑
-function login() {
-    let name = document.getElementById("username").value.trim();
-    let password = document.getElementById("pwd").value.trim();
-    // 查找账号
-    let targetUser = userDatabase.find(item => item.username === name);
-    if (!targetUser) {
-        alert("账号不存在，请先注册！");
+// 登录函数
+async function login() {
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("pwd").value.trim();
+    if (!email || !password) {
+        alert("邮箱和密码不能为空！");
         return;
     }
-    if (targetUser.pwd !== password) {
-        alert("密码输入错误！");
-        return;
+    const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password
+    });
+    if (error) {
+        alert("登录失败：" + error.message);
+    } else {
+        alert("登录成功！");
+        closeModal();
     }
-    // 记录登录状态
-    localStorage.setItem("loginUser", name);
-    currentLoginUser = name;
-    refreshLoginStatus();
-    alert("登录成功！");
-    closeModal();
 }
 
 // 退出登录
-function logout() {
-    localStorage.removeItem("loginUser");
-    currentLoginUser = null;
-    refreshLoginStatus();
+async function logout() {
+    const { error } = await supabase.auth.signOut();
+    if (error) alert(error.message);
 }
 
-// 更新页面登录显示
-function refreshLoginStatus() {
-    if (currentLoginUser) {
+// 监听全局登录状态，切换导航显示
+supabase.auth.onAuthStateChange((event, session) => {
+    if (session) {
+        // 已登录
         document.getElementById("loginBtn").classList.add("hide");
         document.getElementById("userBox").classList.remove("hide");
-        document.getElementById("nowUser").innerText = currentLoginUser;
+        document.getElementById("userMail").innerText = session.user.email;
     } else {
+        // 未登录
         document.getElementById("loginBtn").classList.remove("hide");
         document.getElementById("userBox").classList.add("hide");
-        document.getElementById("nowUser").innerText = "";
+        document.getElementById("userMail").innerText = "";
     }
-}
+});
 
-// 页面加载自动检测登录状态
-window.onload = function () {
-    currentLoginUser = localStorage.getItem("loginUser");
-    refreshLoginStatus();
+// 页面加载自动读取登录会话
+window.onload = async () => {
+    const { data } = await supabase.auth.getSession();
+    const session = data.session;
+    if (session) {
+        document.getElementById("loginBtn").classList.add("hide");
+        document.getElementById("userBox").classList.remove("hide");
+        document.getElementById("userMail").innerText = session.user.email;
+    }
 }
 </script>
 </body>
